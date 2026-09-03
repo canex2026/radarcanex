@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canex Radar</title>
+<style>
+  :root{
+    --navy: #273278;
+    --navy-deep: #171d47;
+    --orange: #F39000;
+    --red-orange: #E9530D;
+    --paper: #F6F5F1;
+    --ink: #1B1E2E;
+    --slate: #6B7290;
+    --line: #DFDFE4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height:100vh;
+  }
+  .mono{ font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace; }
+
+  header{
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:#fff; padding: 22px 20px 18px; position:relative; overflow:hidden;
+  }
+  header::before{
+    content:""; position:absolute; inset:0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
+    background-size: 18px 18px; pointer-events:none;
+  }
+  .brand-row{ display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1; flex-wrap:wrap; gap:12px;}
+  .brand{ display:flex; flex-direction:column; gap:2px; }
+  .brand .name{ font-size:19px; font-weight:700; letter-spacing:0.2px; }
+  .brand .tag{ font-size:12.5px; color:#C9CEEE; }
+  .mode-toggle{ display:flex; background:rgba(255,255,255,0.1); border-radius:9px; padding:3px; flex-wrap:wrap; }
+  .mode-toggle button{
+    border:none; background:transparent; color:#D6D9F2;
+    padding:8px 14px; font-size:13px; font-weight:600; border-radius:7px; cursor:pointer;
+    transition: background .15s, color .15s;
+  }
+  .mode-toggle button.active{ background:#fff; color:var(--navy-deep); }
+
+  main{ max-width: 1400px; margin: 0 auto; padding: 22px 24px 60px; width:100%; box-sizing:border-box; }
+
+  .panel{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; }
+  .panel + .panel{ margin-top:14px; }
+  h2{ font-size:16px; margin:0 0 4px; }
+  h3{ font-size:14px; margin:16px 0 8px; color:var(--navy); }
+  .hint{ font-size:13px; color:var(--slate); margin:0 0 14px; }
+
+  input[type=text], input[type=password]{
+    width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:8px;
+    font-size:15px; font-family:inherit; color:var(--ink);
+  }
+  input:focus{ outline:none; border-color:var(--navy); }
+  select{
+    width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:8px;
+    font-size:14.5px; font-family:inherit; color:var(--ink); background:#fff;
+  }
+  textarea{
+    width:100%; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px;
+    font-size:13.5px; font-family:inherit; color:var(--ink); resize:vertical; min-height:54px;
+  }
+  label{ display:block; font-size:12px; font-weight:600; color:var(--slate); margin:12px 0 5px; }
+  label:first-child{ margin-top:0; }
+
+  .btn{ border:none; border-radius:8px; padding:11px 18px; font-size:14.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .btn-primary{ background:var(--orange); color:#1B1200; }
+  .btn-primary:hover{ background:#dd8300; }
+  .btn-primary:disabled{ opacity:0.6; cursor:default; }
+  .btn-ghost{ background:transparent; color:var(--navy); border:1.5px solid var(--navy); }
+  .btn-danger{ background:transparent; color:#B3401A; border:1.5px solid #F3C1AC; }
+  .btn-full{ width:100%; margin-top:14px; }
+  .btn-sm{ padding:7px 12px; font-size:13px; }
+  .btn-link{ background:none; border:none; color:var(--navy); font-size:12.5px; font-weight:600; cursor:pointer; padding:2px 0; }
+
+  .error-box{ margin-top:10px; padding:10px 13px; background:#FDEDE7; border:1px solid #F3C1AC; border-radius:8px; color:#8A2E0E; font-size:13px; }
+  .status-ok{ font-size:13px; margin-top:10px; color:#1E6B48; }
+  .status-err{ font-size:13px; margin-top:10px; color:#B3401A; }
+
+  .sale-card{ border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-top:10px; cursor:pointer; transition: border-color .15s; }
+  .sale-card:hover{ border-color:var(--navy); }
+  .sale-top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .sale-code{ font-size:12px; color:var(--slate); letter-spacing:0.3px;}
+  .sale-client{ font-size:15px; font-weight:700; }
+  .sale-product{ font-size:12.5px; color:var(--slate); }
+  .stage-badge{ display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; background:#FFF1DC; color:#8A5300; white-space:nowrap; }
+  .stage-badge.done{ background:#E4F6ED; color:#1E6B48; }
+  .vendedor-tag{ font-size:11.5px; color:var(--slate); }
+
+  .mini-track{ display:flex; align-items:center; margin-top:10px; overflow-x:auto; padding-bottom:2px; }
+  .mini-dot{ width:8px; height:8px; border-radius:50%; background:var(--line); flex-shrink:0; }
+  .mini-dot.filled{ background:var(--orange); }
+  .mini-dot.current{ background:var(--red-orange); box-shadow:0 0 0 3px rgba(233,83,13,0.18); }
+  .mini-line{ width:12px; height:2px; background:var(--line); flex-shrink:0; }
+  .mini-line.filled{ background:var(--orange); }
+
+  /* vertical (por defecto: Administración y Vendedor) */
+  .flightpath{ margin: 18px 0 4px; }
+  .waypoint{ display:flex; gap:14px; position:relative; padding-bottom:20px; }
+  .waypoint:last-child{ padding-bottom:0; }
+  .wp-rail{ display:flex; flex-direction:column; align-items:center; width:22px; flex-shrink:0; }
+  .wp-dot{ width:22px; height:22px; border-radius:50%; border:2.5px solid var(--line); background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; font-size:10.5px; color:var(--slate); }
+  .wp-dot.done{ border-color:var(--orange); background:var(--orange); color:#fff; }
+  .wp-dot.current{ border-color:var(--red-orange); background:var(--red-orange); color:#fff; box-shadow:0 0 0 4px rgba(233,83,13,0.16); }
+  .wp-connector{ width:2px; flex:1; background:var(--line); min-height:16px; }
+  .wp-connector.filled{ background:var(--orange); }
+  .wp-body{ padding-top:1px; flex:1; min-width:0; }
+  .wp-label{ font-size:14px; font-weight:600; }
+  .wp-label.future{ color:var(--slate); font-weight:500; }
+  .wp-owner{ font-size:11px; color:var(--slate); margin-top:1px; }
+  .wp-date{ font-size:11.5px; color:var(--slate); margin-top:2px; }
+  .wp-duration-inline{ font-size:11px; color:var(--orange); font-weight:700; margin-top:3px; }
+  .wp-choice-badge{ display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; background:#EEF0FA; color:var(--navy); margin-top:5px; margin-right:5px; }
+  .wp-note-preview{ font-size:12px; color:var(--slate); font-style:italic; margin-top:4px; }
+  .wp-choice-row{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; justify-content:center; }
+  .choice-btn{ padding:6px 12px; border-radius:14px; border:1.5px solid var(--line); background:#fff; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .choice-btn.selected{ background:var(--navy); border-color:var(--navy); color:#fff; }
+  .lock-row{ margin-top:8px; text-align:left; }
+  .lock-inline{ display:flex; gap:6px; margin-top:6px; align-items:flex-start; flex-wrap:wrap; }
+  .lock-inline input{ flex:1; min-width:120px; padding:8px 10px; font-size:13px; }
+  .unlocked-box{ margin-top:8px; padding:10px 12px; background:#F9FAFD; border:1px dashed var(--line); border-radius:8px; text-align:left; min-width:210px; }
+
+  /* horizontal (solo vista Cliente) */
+  .flightpath.horizontal{ display:flex; align-items:flex-start; overflow-x:auto; margin: 18px -4px 4px; padding:14px 4px 18px; gap:18px; }
+  .flightpath.horizontal .waypoint{ display:flex; flex-direction:column; align-items:center; gap:0; min-width:170px; flex:1 0 170px; padding-bottom:0; }
+  .flightpath.horizontal .wp-rail{ flex-direction:row; width:100%; }
+  .flightpath.horizontal .wp-dot{ width:26px; height:26px; font-size:11px; }
+  .flightpath.horizontal .wp-connector{ width:auto; min-width:20px; min-height:0; }
+  .flightpath.horizontal .wp-body{ padding-top:10px; text-align:center; padding-left:8px; padding-right:8px; }
+  .flightpath.horizontal .wp-duration{ font-size:10.5px; color:var(--orange); font-weight:700; text-align:right; padding-right:8px; margin-top:4px; white-space:nowrap; }
+
+  .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-top:14px; font-size:13.5px; }
+  .info-grid .k{ color:var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:0.4px; }
+  .info-grid .v{ font-weight:600; margin-top:2px; }
+
+  .empty-state{ text-align:center; padding:30px 10px; color:var(--slate); font-size:14px; }
+  .close-row{ display:flex; justify-content:flex-start; margin-top:16px; }
+
+  .person-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); gap:10px; }
+  .person-row:last-child{ border-bottom:none; }
+  .person-name{ font-weight:700; font-size:14px; }
+  .person-code{ font-size:12.5px; color:var(--slate); }
+  .person-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .role-group{ margin-top:6px; }
+  .edit-row{ padding:10px 0; border-bottom:1px solid var(--line); background:#F9FAFD; margin:0 -20px; padding-left:20px; padding-right:20px; }
+
+  .codes-table{ width:100%; border-collapse:collapse; margin-top:4px; }
+  .codes-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:var(--slate); padding:0 10px 8px 0; border-bottom:1.5px solid var(--line); }
+  .codes-table td{ padding:12px 10px 12px 0; border-bottom:1px solid var(--line); vertical-align:middle; font-size:14px; }
+  .codes-table tr:last-child td{ border-bottom:none; }
+  .code-chip{ font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace; font-size:13px; color:#8A2E2E; background:#fff; border:1px solid var(--line); border-radius:6px; padding:3px 10px; display:inline-block; }
+  .role-chip{ font-size:12px; color:var(--slate); }
+
+  /* -------- login -------- */
+  .login-wrap{ min-height:70vh; display:flex; align-items:center; justify-content:center; padding:30px 0; }
+  .login-card{ background:#fff; border-radius:16px; box-shadow:0 12px 34px rgba(23,29,71,0.10); padding:38px 32px 30px; max-width:400px; width:100%; text-align:center; }
+  .login-title{ font-size:18px; font-weight:800; color:var(--ink); margin:4px 0 26px; }
+  .login-card label{ text-align:left; }
+  .login-caption{ font-size:12.5px; color:var(--slate); margin-top:18px; line-height:1.5; }
+
+  /* -------- hero cliente -------- */
+  .client-hero{
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 65%, var(--red-orange) 160%);
+    border-radius:18px; padding:30px 24px 26px; color:#fff; text-align:center;
+    position:relative; overflow:hidden;
+  }
+  .client-hero::before{
+    content:""; position:absolute; inset:0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.09) 1.5px, transparent 1.5px);
+    background-size: 20px 20px; pointer-events:none;
+  }
+  .client-hero .drone-emoji{ font-size:40px; line-height:1; position:relative; z-index:1; }
+  .client-hero .hero-client{ font-size:13px; color:#C9CEEE; margin-top:8px; position:relative; z-index:1; }
+  .client-hero .hero-product{ font-size:22px; font-weight:800; margin-top:2px; position:relative; z-index:1; }
+  .client-hero .hero-stage{ font-size:15px; font-weight:600; margin-top:16px; position:relative; z-index:1; }
+  .progress-outer{ height:8px; background:rgba(255,255,255,0.18); border-radius:6px; margin-top:16px; overflow:hidden; position:relative; z-index:1; }
+  .progress-inner{ height:100%; background:linear-gradient(90deg, var(--orange), var(--red-orange)); border-radius:6px; transition:width .4s ease; }
+  .progress-pct{ font-size:11.5px; color:#C9CEEE; margin-top:6px; position:relative; z-index:1; }
+  .hero-delivered{ background: linear-gradient(135deg, #1E6B48 0%, var(--navy-deep) 75%); }
+  .stage-friendly{ font-size:13px; color:var(--slate); margin:2px 0 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <div class="brand">
+      <div class="name">CANEX RADAR</div>
+      <div class="tag">Estado del proceso de tu Agras DJI</div>
+    </div>
+    <div class="mode-toggle" id="modeToggle" style="display:none;">
+      <button id="tabAdmin">Administración</button>
+      <button id="tabConfig">Configuración</button>
+      <button id="btnCambiarPerfil" style="opacity:0.75;">Cambiar de perfil</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="viewLanding">
+    <div class="login-wrap">
+      <div class="login-card">
+        <img src="data:image/png;base64,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" alt="Canex" style="height:44px; width:auto; margin-bottom:6px;">
+        <h2 class="login-title">CANEX RADAR — Acceso</h2>
+
+        <label>Usuario</label>
+        <select id="loginUsuario">
+          <option value="">Selecciona…</option>
+          <option value="cliente">Cliente</option>
+          <option value="vendedor">Vendedor</option>
+          <option value="canex">Personal Canex</option>
+        </select>
+
+        <div id="loginVendedorWrap" style="display:none;">
+          <label>¿Quién eres?</label>
+          <select id="loginVendedorQuien"><option value="">Selecciona…</option></select>
+        </div>
+
+        <label id="loginCodeLabel">Código</label>
+        <input type="text" id="loginCode" placeholder="Selecciona un usuario primero" disabled>
+
+        <div id="loginError" class="error-box" style="display:none; text-align:left;"></div>
+
+        <button class="btn btn-primary btn-full" id="btnLoginIngresar" style="margin-top:16px;">Ingresar</button>
+
+        <p class="login-caption">Acceso exclusivo para clientes y equipo comercial de Canex Maquinarias.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewAdmin" style="display:none;"></div>
+  <div id="viewConfig" style="display:none;"></div>
+
+  <div id="viewVendedor" style="display:none;">
+    <div id="vendedorContent"></div>
+  </div>
+
+  <div id="viewCliente" style="display:none;">
+    <div id="clienteResultado"></div>
+    <div class="panel" style="margin-top:14px;">
+      <button class="btn-link" id="btnClienteVolver">← Cambiar de perfil</button>
+    </div>
+  </div>
+</main>
+
+<script>
+// ============================================================
+// Compatibilidad de almacenamiento para despliegue en Netlify.
+// Reemplaza window.storage (que solo existe dentro de Claude)
+// por llamadas a nuestra propia función serverless, que guarda
+// los datos en Netlify Blobs. El resto del código no cambia:
+// sigue usando window.storage.get/set/list/delete tal cual.
+// ============================================================
+if(typeof window.storage === 'undefined'){
+  window.storage = {
+    async get(key){
+      const res = await fetch('/api/storage?action=get&key=' + encodeURIComponent(key));
+      if(!res.ok) return null;
+      return await res.json(); // { key, value }
+    },
+    async set(key, value){
+      const res = await fetch('/api/storage', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'set', key, value })
+      });
+      if(!res.ok) return null;
+      return await res.json();
+    },
+    async list(prefix){
+      const res = await fetch('/api/storage?action=list&prefix=' + encodeURIComponent(prefix || ''));
+      if(!res.ok) return null;
+      return await res.json(); // { keys: [...] }
+    },
+    async delete(key){
+      const res = await fetch('/api/storage', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'delete', key })
+      });
+      if(!res.ok) return null;
+      return await res.json();
+    }
+  };
+}
+
+// -------- Valores por defecto (solo se usan la PRIMERA vez; luego todo se administra desde Configuración) --------
+const DEFAULT_COLLAB_CODE = 'CANEX2026';
+const DEFAULT_CONFIG_CODE = 'CANEXCFG77';
+let COLLAB_CODE = DEFAULT_COLLAB_CODE;
+let CONFIG_CODE = DEFAULT_CONFIG_CODE;
+
+// Roles que se administran como personal (todos editables desde Configuración)
+const ROLES = ['Vendedor','Coordinadora','Entregador','Bodeguero','Gerencia Comercial','Comité de Crédito','Técnico designado'];
+
+const STAGES = [
+  { label:'Envío a negociación' },
+  { label:'Aprobación de gerencia comercial', role:'Gerencia Comercial',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['En espera de aprobación','Aprobado','Negado'], allowOther:true} ] },
+  { label:'Aprobación de crédito o contado', role:'Comité de Crédito',
+    fields:[
+      {key:'modalidad', label:'Modalidad', type:'choice', options:['Crédito','Contado']},
+      {key:'estado', label:'Estado', type:'choice', options:['En espera de aprobación','Aprobado','Negado'], allowOther:true}
+    ] },
+  { label:'Disponibilidad de producto', role:'Coordinadora',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['Consultado','Stock disponible','Esperando despacho de Master Dealer'], allowOther:true} ] },
+  { label:'Proceso de facturación', role:'Coordinadora',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['En proceso','Problemas e inconsistencias en el sistema','Facturado'], allowOther:true} ] },
+  { label:'Preparación técnica', role:'Técnico designado',
+    fields:[
+      {key:'tecnico', label:'Técnico asignado o tienda designada', type:'select', options:['Raúl Solórzano','Kevin Medina','Diego Barreto','Tienda Babahoyo','Tienda Quevedo','Tienda La Maná','Tienda Durán','Almax']},
+      {key:'estado', label:'Estado', type:'choice', options:['En preparación','Completada','Con novedades'], allowOther:true}
+    ] },
+  { label:'Pago', role:'Coordinadora',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['Recibido','A la espera de la acreditación','Rechazado'], allowOther:true} ] },
+  { label:'Listo para despacho', role:'Bodeguero',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['Listo','En alistamiento','Con demora'], allowOther:true} ] },
+  { label:'En ruta a entrega', role:'Entregador',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['En camino','Demorado','Reprogramado'], allowOther:true} ] },
+  { label:'Entregado', role:'Entregador',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['Entregado conforme','Entregado con novedades'], allowOther:true} ] },
+  { label:'Información subida a Lark', role:'Entregador',
+    fields:[ {key:'estado', label:'Estado', type:'choice', options:['Subido','Pendiente de subir'], allowOther:true} ] }
+];
+function stageOwnerLabel(s){ return s.owner || s.role || ''; }
+
+const PRODUCTOS = ['T25P','T55','T70P','T100'];
+
+let currentVendedor = null;
+let currentVendedorCode = null;
+let ventasCache = {};
+let personalCache = {};
+let unlockedStages = {};
+let unlockedNames = {};
+let configUnlocked = false;
+
+// ---------- storage: ventas ----------
+async function loadAllVentas(){
+  try{
+    const list = await window.storage.list('venta:', true);
+    const keys = list && list.keys ? list.keys : [];
+    const records = {};
+    await Promise.all(keys.map(async (k)=>{
+      try{
+        const res = await window.storage.get(k, true);
+        if(res && res.value){ records[k] = JSON.parse(res.value); }
+      }catch(e){ /* skip */ }
+    }));
+    ventasCache = records;
+    return records;
+  }catch(e){
+    console.error('Error cargando ventas', e);
+    return {};
+  }
+}
+async function saveVenta(codigo, record){
+  const setRes = await window.storage.set('venta:'+codigo, JSON.stringify(record), true);
+  return !!setRes;
+}
+async function deleteVenta(codigo){
+  try{ await window.storage.delete('venta:'+codigo, true); return true; }catch(e){ return false; }
+}
+function generateCodigo(existingKeys){
+  let code, key;
+  do{
+    const n = Math.floor(1000 + Math.random()*9000);
+    code = 'CX-VTA-'+n;
+    key = 'venta:'+code;
+  }while(existingKeys.includes(key));
+  return code;
+}
+
+// ---------- storage: códigos generales del sistema ----------
+async function loadSystemCodes(){
+  try{
+    const res = await window.storage.get('sistema:codigos', true);
+    if(res && res.value){
+      const obj = JSON.parse(res.value);
+      COLLAB_CODE = obj.collab || DEFAULT_COLLAB_CODE;
+      CONFIG_CODE = obj.config || DEFAULT_CONFIG_CODE;
+    }
+  }catch(e){
+    // no existe aún: se guardarán los valores por defecto la primera vez que se editen
+  }
+}
+async function saveSystemCodes(collab, config){
+  const ok = await window.storage.set('sistema:codigos', JSON.stringify({collab, config}), true);
+  if(ok){ COLLAB_CODE = collab; CONFIG_CODE = config; }
+  return !!ok;
+}
+
+// ---------- storage: personal (todos los roles, incluidos los fijos) ----------
+async function loadPersonal(){
+  try{
+    const list = await window.storage.list('personal:', true);
+    const keys = list && list.keys ? list.keys : [];
+    const records = {};
+    await Promise.all(keys.map(async (k)=>{
+      try{
+        const res = await window.storage.get(k, true);
+        if(res && res.value){ records[k] = JSON.parse(res.value); }
+      }catch(e){ /* skip */ }
+    }));
+    personalCache = records;
+    return records;
+  }catch(e){
+    console.error('Error cargando personal', e);
+    return {};
+  }
+}
+function personalByRole(role){
+  return Object.entries(personalCache)
+    .filter(([k,v]) => v.rol === role)
+    .map(([k,v]) => ({ id:k, ...v }));
+}
+function findPersonByRoleAndCode(role, code){
+  return personalByRole(role).find(p => p.codigo === code) || null;
+}
+async function savePersonal(id, obj){
+  const res = await window.storage.set(id, JSON.stringify(obj), true);
+  return !!res;
+}
+async function deletePersonal(id){
+  try{ await window.storage.delete(id, true); return true; }catch(e){ return false; }
+}
+async function seedPersonalIfEmpty(){
+  const list = await window.storage.list('personal:', true);
+  const keys = list && list.keys ? list.keys : [];
+  if(keys.length > 0) return;
+  const seed = [
+    { id:'personal:seed-luis',    nombre:'Luis Avilés',                 rol:'Vendedor',           codigo:'812340' },
+    { id:'personal:seed-angel',   nombre:'Ángel Ortiz',                 rol:'Vendedor',           codigo:'927451' },
+    { id:'personal:seed-nelson',  nombre:'Nelson Chiriguaya',           rol:'Vendedor',           codigo:'634829' },
+    { id:'personal:seed-ronny',   nombre:'Ronny Castro',                rol:'Vendedor',           codigo:'145762' },
+    { id:'personal:seed-cynthia', nombre:'Cynthia Moncayo',             rol:'Coordinadora',       codigo:'356712' },
+    { id:'personal:seed-raul',    nombre:'Raúl Solórzano',              rol:'Bodeguero',          codigo:'509264' },
+    { id:'personal:seed-entreg',  nombre:'Entregador Canex',            rol:'Entregador',         codigo:'673158' },
+    { id:'personal:seed-jeff',    nombre:'Jefferson Izurieta',          rol:'Gerencia Comercial', codigo:'131995' },
+    { id:'personal:seed-comite',  nombre:'Comité de Crédito',           rol:'Comité de Crédito',  codigo:'240871' },
+    { id:'personal:seed-tecnico', nombre:'Técnico designado',           rol:'Técnico designado',  codigo:'481903' }
+  ];
+  for(const p of seed){
+    await window.storage.set(p.id, JSON.stringify({nombre:p.nombre, rol:p.rol, codigo:p.codigo, creado:new Date().toISOString()}), true);
+  }
+}
+// Migración puntual: agrega códigos individuales para técnicos y tiendas designadas,
+// solo si aún no existen (no duplica si ya se crearon manualmente en Configuración).
+async function seedTecnicosIfMissing(){
+  const nuevos = [
+    { id:'personal:tecnico-diego',    nombre:'Diego Barreto',      rol:'Técnico designado', codigo:'274918' },
+    { id:'personal:tecnico-kevin',    nombre:'Kevin Medina',       rol:'Técnico designado', codigo:'583026' },
+    { id:'personal:tecnico-babahoyo', nombre:'Tienda Babahoyo',    rol:'Técnico designado', codigo:'719340' },
+    { id:'personal:tecnico-quevedo',  nombre:'Tienda Quevedo',     rol:'Técnico designado', codigo:'852107' },
+    { id:'personal:tecnico-duran',    nombre:'Tienda Durán',       rol:'Técnico designado', codigo:'396482' },
+    { id:'personal:tecnico-lamana',   nombre:'Tienda La Maná',     rol:'Técnico designado', codigo:'647215' }
+  ];
+  for(const p of nuevos){
+    let existe = null;
+    try{ existe = await window.storage.get(p.id, true); }catch(e){ existe = null; }
+    if(!existe || !existe.value){
+      await window.storage.set(p.id, JSON.stringify({nombre:p.nombre, rol:p.rol, codigo:p.codigo, creado:new Date().toISOString()}), true);
+    }
+  }
+}
+// Migración puntual: el rol Entregador puede ser cualquiera de estas personas o tiendas,
+// cada una con su propio código (además de los roles que ya tenían, ej. Técnico designado).
+async function seedEntregadoresIfMissing(){
+  const nuevos = [
+    { id:'personal:entregador-kevin',    nombre:'Kevin Medina',       rol:'Entregador', codigo:'194728' },
+    { id:'personal:entregador-diego',    nombre:'Diego Barreto',      rol:'Entregador', codigo:'350861' },
+    { id:'personal:entregador-raul',     nombre:'Raúl Solórzano',     rol:'Entregador', codigo:'462953' },
+    { id:'personal:entregador-babahoyo', nombre:'Tienda Babahoyo',    rol:'Entregador', codigo:'587104' },
+    { id:'personal:entregador-quevedo',  nombre:'Tienda Quevedo',     rol:'Entregador', codigo:'703286' },
+    { id:'personal:entregador-duran',    nombre:'Tienda Durán',       rol:'Entregador', codigo:'815497' },
+    { id:'personal:entregador-lamana',   nombre:'Tienda La Maná',     rol:'Entregador', codigo:'928360' }
+  ];
+  for(const p of nuevos){
+    let existe = null;
+    try{ existe = await window.storage.get(p.id, true); }catch(e){ existe = null; }
+    if(!existe || !existe.value){
+      await window.storage.set(p.id, JSON.stringify({nombre:p.nombre, rol:p.rol, codigo:p.codigo, creado:new Date().toISOString()}), true);
+    }
+  }
+}
+
+// ---------- tabs ----------
+const tabAdmin = document.getElementById('tabAdmin');
+const tabConfig = document.getElementById('tabConfig');
+const viewLanding = document.getElementById('viewLanding');
+const viewAdmin = document.getElementById('viewAdmin');
+const viewConfig = document.getElementById('viewConfig');
+const viewVendedor = document.getElementById('viewVendedor');
+const viewCliente = document.getElementById('viewCliente');
+const modeToggle = document.getElementById('modeToggle');
+
+function setActiveTab(btn){
+  [tabAdmin, tabConfig].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function hideAllViews(){
+  viewLanding.style.display='none'; viewAdmin.style.display='none'; viewConfig.style.display='none';
+  viewVendedor.style.display='none'; viewCliente.style.display='none';
+}
+tabAdmin.onclick = ()=>{ setActiveTab(tabAdmin); hideAllViews(); viewAdmin.style.display='block'; renderAdminHome(); };
+tabConfig.onclick = ()=>{ setActiveTab(tabConfig); hideAllViews(); viewConfig.style.display='block'; renderConfigGate(); };
+
+// ---------- pantalla de login ----------
+const loginUsuario = document.getElementById('loginUsuario');
+const loginVendedorWrap = document.getElementById('loginVendedorWrap');
+const loginVendedorQuien = document.getElementById('loginVendedorQuien');
+const loginCode = document.getElementById('loginCode');
+const loginCodeLabel = document.getElementById('loginCodeLabel');
+const loginError = document.getElementById('loginError');
+
+function showLanding(){
+  hideAllViews();
+  modeToggle.style.display = 'none';
+  viewLanding.style.display = 'block';
+  loginUsuario.value = '';
+  loginVendedorWrap.style.display = 'none';
+  loginVendedorQuien.innerHTML = '<option value="">Selecciona…</option>';
+  loginCode.value = '';
+  loginCode.disabled = true;
+  loginCode.type = 'text';
+  loginCode.placeholder = 'Selecciona un usuario primero';
+  loginCodeLabel.textContent = 'Código';
+  loginError.style.display = 'none';
+  configUnlocked = false;
+}
+
+function populateLoginVendedorSelect(){
+  const vendedores = personalByRole('Vendedor');
+  loginVendedorQuien.innerHTML = '<option value="">Selecciona…</option>' +
+    vendedores.map(v=>`<option value="${v.id}">${v.nombre}</option>`).join('');
+}
+
+loginUsuario.addEventListener('change', ()=>{
+  loginError.style.display = 'none';
+  loginCode.value = '';
+  if(loginUsuario.value === 'cliente'){
+    loginVendedorWrap.style.display = 'none';
+    loginCode.disabled = false;
+    loginCode.type = 'text';
+    loginCode.placeholder = 'CX-VTA-0001';
+    loginCodeLabel.textContent = 'Código de tu guía / pedido';
+  }else if(loginUsuario.value === 'vendedor'){
+    loginVendedorWrap.style.display = 'block';
+    populateLoginVendedorSelect();
+    loginCode.disabled = true;
+    loginCode.type = 'password';
+    loginCode.placeholder = 'Elige tu nombre primero';
+    loginCodeLabel.textContent = 'Tu código de vendedor';
+  }else if(loginUsuario.value === 'canex'){
+    loginVendedorWrap.style.display = 'none';
+    loginCode.disabled = false;
+    loginCode.type = 'password';
+    loginCode.placeholder = 'Código de colaborador';
+    loginCodeLabel.textContent = 'Código';
+  }else{
+    loginVendedorWrap.style.display = 'none';
+    loginCode.disabled = true;
+    loginCode.placeholder = 'Selecciona un usuario primero';
+    loginCodeLabel.textContent = 'Código';
+  }
+});
+
+loginVendedorQuien.addEventListener('change', ()=>{
+  loginCode.disabled = !loginVendedorQuien.value;
+  loginCode.value = '';
+});
+
+document.getElementById('btnLoginIngresar').onclick = async ()=>{
+  const usuario = loginUsuario.value;
+  const code = loginCode.value.trim();
+  loginError.style.display = 'none';
+
+  if(!usuario){ loginError.textContent = 'Selecciona un tipo de usuario.'; loginError.style.display='block'; return; }
+
+  if(usuario === 'vendedor'){
+    const personId = loginVendedorQuien.value;
+    if(!personId){ loginError.textContent = 'Elige quién eres.'; loginError.style.display='block'; return; }
+    if(!code){ loginError.textContent = 'Ingresa tu código.'; loginError.style.display='block'; return; }
+    const person = personalCache[personId];
+    if(!person || person.codigo !== code){
+      loginError.textContent = 'Código incorrecto.';
+      loginError.style.display = 'block';
+      return;
+    }
+    currentVendedor = person.nombre;
+    currentVendedorCode = person.codigo;
+    hideAllViews();
+    modeToggle.style.display = 'none';
+    viewVendedor.style.display = 'block';
+    await loadAllVentas();
+    renderVendedorList();
+    return;
+  }
+
+  if(!code){ loginError.textContent = 'Ingresa tu código.'; loginError.style.display='block'; return; }
+
+  if(usuario === 'canex'){
+    if(code === COLLAB_CODE){
+      hideAllViews();
+      modeToggle.style.display = 'flex';
+      setActiveTab(tabAdmin);
+      viewAdmin.style.display = 'block';
+      renderAdminHome();
+    }else{
+      loginError.textContent = 'Código incorrecto.';
+      loginError.style.display = 'block';
+    }
+    return;
+  }
+
+  // usuario === 'cliente'
+  const btn = document.getElementById('btnLoginIngresar');
+  const raw = code.toUpperCase();
+  btn.disabled = true; btn.textContent = 'Buscando…';
+  const r = await fetchVenta(raw);
+  btn.disabled = false; btn.textContent = 'Ingresar';
+  if(!r){
+    loginError.textContent = 'No encontramos ese código. Verifica con tu asesor comercial.';
+    loginError.style.display = 'block';
+    return;
+  }
+  hideAllViews();
+  modeToggle.style.display = 'none';
+  viewCliente.style.display = 'block';
+  renderClienteResult(raw, r);
+};
+loginCode.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ document.getElementById('btnLoginIngresar').click(); }
+});
+document.getElementById('btnCambiarPerfil').onclick = showLanding;
+document.getElementById('btnClienteVolver').onclick = showLanding;
+
+// ---------- helpers de render ----------
+function stageBadge(idx){
+  const done = idx === STAGES.length-1;
+  return `<span class="stage-badge ${done?'done':''}">${STAGES[idx].label}</span>`;
+}
+function miniTrack(idx){
+  let html = '<div class="mini-track">';
+  STAGES.forEach((s,i)=>{
+    const filled = i <= idx;
+    const isCurrent = i === idx;
+    html += `<div class="mini-dot ${filled?'filled':''} ${isCurrent?'current':''}"></div>`;
+    if(i < STAGES.length-1){ html += `<div class="mini-line ${i < idx ? 'filled':''}"></div>`; }
+  });
+  html += '</div>';
+  return html;
+}
+
+function formatFecha(iso){
+  try{
+    const d = new Date(iso);
+    const fecha = d.toLocaleDateString('es-EC', {day:'2-digit', month:'short'});
+    const hora = d.toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'});
+    return `${fecha} · ${hora}`;
+  }catch(e){ return iso; }
+}
+function formatDuracion(ms){
+  if(!isFinite(ms) || ms < 0) ms = 0;
+  const totalHoras = Math.floor(ms / 3600000);
+  const dias = Math.floor(totalHoras / 24);
+  const horas = totalHoras % 24;
+  if(dias > 0){ return horas > 0 ? `${dias}d ${horas}h` : `${dias}d`; }
+  if(totalHoras > 0){
+    const minutos = Math.floor((ms % 3600000) / 60000);
+    return minutos > 0 ? `${totalHoras}h ${minutos}m` : `${totalHoras}h`;
+  }
+  const minutos = Math.max(1, Math.floor(ms / 60000));
+  return `${minutos}m`;
+}
+function fieldDisplayValue(r, idx, f){
+  const c = r.campos && r.campos[idx];
+  if(!c) return null;
+  const val = c[f.key];
+  if(!val) return null;
+  if(val === 'Otro' && c[f.key+'_otro']) return c[f.key+'_otro'];
+  return val;
+}
+// flightpath de solo lectura (Vendedor / Cliente). showNotes=false oculta las notas internas (uso: vista Cliente).
+// horizontal=true dibuja la línea de tiempo en horizontal (uso exclusivo: vista Cliente).
+function buildFlightpathReadOnly(r, showNotes, horizontal){
+  if(showNotes === undefined) showNotes = true;
+  let html = `<div class="flightpath ${horizontal ? 'horizontal' : ''}">`;
+  STAGES.forEach((s, i)=>{
+    const done = i < r.etapaActual;
+    const isCurrent = i === r.etapaActual;
+    const fecha = r.fechas && r.fechas[i];
+    const nextFecha = r.fechas && r.fechas[i+1];
+    const duracion = (fecha && nextFecha) ? formatDuracion(new Date(nextFecha) - new Date(fecha)) : null;
+    const nota = showNotes ? (r.notasEtapa && r.notasEtapa[i]) : null;
+    const fieldBadges = (s.fields||[]).map(f=>{
+      const v = fieldDisplayValue(r, i, f);
+      return v ? `<div class="wp-choice-badge">${f.label}: ${v}</div>` : '';
+    }).join('');
+    html += `
+      <div class="waypoint">
+        <div class="wp-rail">
+          <div class="wp-dot ${done?'done':''} ${isCurrent?'current':''}">${done?'✓':(i+1)}</div>
+          ${i < STAGES.length-1 ? `<div class="wp-connector ${done?'filled':''}"></div>` : ''}
+        </div>
+        ${duracion && horizontal ? `<div class="wp-duration">⏱ ${duracion}</div>` : ''}
+        <div class="wp-body">
+          <div class="wp-label ${!done && !isCurrent ? 'future':''}">${s.label}</div>
+          ${fecha ? `<div class="wp-date">${formatFecha(fecha)}</div>` : ''}
+          ${duracion && !horizontal ? `<div class="wp-duration-inline">⏱ ${duracion} hasta la siguiente etapa</div>` : ''}
+          ${fieldBadges}
+          ${nota ? `<div class="wp-note-preview">"${nota}"</div>` : ''}
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  return html;
+}
+
+// ---------- ADMIN ----------
+async function renderAdminHome(){
+  viewAdmin.innerHTML = `<div class="panel"><p class="hint" style="margin:0;">Cargando ventas…</p></div>`;
+  await loadPersonal();
+  await loadAllVentas();
+  const entries = Object.entries(ventasCache).sort((a,b)=> (b[1].creado||'').localeCompare(a[1].creado||''));
+
+  let html = `
+    <div class="panel">
+      <h2>Todas las ventas</h2>
+      <p class="hint">Vista de seguimiento para todo el personal Canex. Cada etapa se actualiza solo con el código de su responsable.</p>
+      <button class="btn btn-ghost" id="btnNuevaVenta">+ Registrar nueva venta</button>
+    </div>
+  `;
+  if(entries.length === 0){
+    html += `<div class="panel"><div class="empty-state">Aún no hay ventas registradas.</div></div>`;
+  }else{
+    html += `<div class="panel" style="padding:10px 16px;">`;
+    entries.forEach(([key, r])=>{
+      const codigo = key.replace('venta:','');
+      html += `
+        <div class="sale-card" data-codigo="${codigo}">
+          <div class="sale-top">
+            <div>
+              <div class="sale-client">${r.cliente}</div>
+              <div class="sale-product">${r.producto} · <span class="mono sale-code">${codigo}</span></div>
+              <div class="vendedor-tag">Asesor: ${r.vendedor}</div>
+            </div>
+            ${stageBadge(r.etapaActual)}
+          </div>
+          ${miniTrack(r.etapaActual)}
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  viewAdmin.innerHTML = html;
+  document.getElementById('btnNuevaVenta').onclick = openNuevaVentaForm;
+  viewAdmin.querySelectorAll('.sale-card').forEach(card=>{
+    card.onclick = ()=>{ unlockedStages = {}; unlockedNames = {}; renderVentaEditorAdmin(card.dataset.codigo); };
+  });
+}
+
+function openNuevaVentaForm(){
+  const vendedores = personalByRole('Vendedor');
+  const vendedorOptions = vendedores.map(v=>`<option value="${v.id}">${v.nombre}</option>`).join('');
+  const productOptions = PRODUCTOS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  viewAdmin.insertAdjacentHTML('afterbegin', `
+    <div class="panel" id="nuevaVentaPanel">
+      <h2>Nueva venta</h2>
+      <label>Nombre del cliente</label>
+      <input type="text" id="nvCliente" placeholder="Ej. Agrícola San José S.A.">
+      <label>Producto</label>
+      <select id="nvProducto">${productOptions}</select>
+      <label>Asesor comercial</label>
+      <select id="nvVendedor">${vendedorOptions || '<option value="">Sin vendedores registrados</option>'}</select>
+      <label>Código del asesor seleccionado</label>
+      <input type="password" id="nvCode" placeholder="Código">
+      <div id="nvStatus" style="display:none;"></div>
+      <button class="btn btn-primary btn-full" id="btnGuardarNueva">Crear venta</button>
+      <div class="close-row"><button class="btn btn-ghost btn-sm" id="btnCancelarNueva">Cancelar</button></div>
+    </div>
+  `);
+  document.getElementById('btnCancelarNueva').onclick = ()=> document.getElementById('nuevaVentaPanel').remove();
+
+  const statusEl = document.getElementById('nvStatus');
+  const showStatus = (msg, isError)=>{
+    statusEl.textContent = msg;
+    statusEl.className = isError ? 'status-err' : 'status-ok';
+    statusEl.style.display = 'block';
+  };
+
+  document.getElementById('btnGuardarNueva').onclick = async ()=>{
+    const btn = document.getElementById('btnGuardarNueva');
+    const cliente = document.getElementById('nvCliente').value.trim();
+    const producto = document.getElementById('nvProducto').value;
+    const vendedorId = document.getElementById('nvVendedor').value;
+    const code = document.getElementById('nvCode').value.trim();
+    const persona = personalCache[vendedorId];
+
+    if(!cliente){ showStatus('Falta el nombre del cliente.', true); return; }
+    if(!persona){ showStatus('Selecciona un asesor válido.', true); return; }
+    if(code !== persona.codigo){ showStatus('Código incorrecto para '+persona.nombre+'.', true); return; }
+    if(typeof window.storage === 'undefined'){ showStatus('El almacenamiento no está disponible en esta vista.', true); return; }
+
+    btn.disabled = true;
+    showStatus('Guardando…', false);
+    try{
+      const listRes = await window.storage.list('venta:', true);
+      const existingKeys = (listRes && listRes.keys) ? listRes.keys : [];
+      const codigo = generateCodigo(existingKeys);
+      const record = {
+        cliente, producto, vendedor: persona.nombre,
+        etapaActual: 0,
+        fechas: { 0: new Date().toISOString() },
+        notasEtapa: {},
+        campos: {},
+        creado: new Date().toISOString()
+      };
+      const ok = await saveVenta(codigo, record);
+      if(!ok){ showStatus('No se pudo guardar. Intenta de nuevo.', true); btn.disabled=false; return; }
+      showStatus('Venta creada: '+codigo, false);
+      await renderAdminHome();
+    }catch(err){
+      showStatus('Error al guardar: '+(err && err.message ? err.message : String(err)), true);
+      btn.disabled = false;
+    }
+  };
+}
+
+// editor de una venta en Administración, con código individual por etapa (por rol)
+async function renderVentaEditorAdmin(codigo){
+  const key = 'venta:'+codigo;
+  const r = ventasCache[key];
+  if(!r) return;
+  r.campos = r.campos || {};
+
+  let wpHtml = '<div class="flightpath">';
+  STAGES.forEach((s, i)=>{
+    const done = i < r.etapaActual;
+    const isCurrent = i === r.etapaActual;
+    const fecha = r.fechas && r.fechas[i];
+    const nextFecha = r.fechas && r.fechas[i+1];
+    const duracion = (fecha && nextFecha) ? formatDuracion(new Date(nextFecha) - new Date(fecha)) : null;
+    const nota = (r.notasEtapa && r.notasEtapa[i]) || '';
+    const campos = r.campos[i] || {};
+    const requiresCode = !!s.role;
+    const unlocked = unlockedStages[i] === true;
+
+    const fieldBadges = (s.fields||[]).map(f=>{
+      const v = fieldDisplayValue(r, i, f);
+      return v ? `<div class="wp-choice-badge">${f.label}: ${v}</div>` : '';
+    }).join('');
+
+    let controlsHtml = '';
+    if(!requiresCode || unlocked){
+      controlsHtml += `<div class="unlocked-box">`;
+      if(unlocked && unlockedNames[i]){
+        controlsHtml += `<div class="hint" style="margin:0 0 8px;">Ingresando como: <strong>${unlockedNames[i]}</strong></div>`;
+      }
+      controlsHtml += `<button class="btn btn-primary btn-sm" data-idx="${i}" data-action="set-stage">Marcar como etapa actual</button>`;
+
+      (s.fields||[]).forEach(f=>{
+        const currentVal = campos[f.key];
+        if(f.type === 'choice'){
+          const opts = f.allowOther ? [...f.options, 'Otro'] : f.options;
+          controlsHtml += `<label style="margin-top:8px;">${f.label}</label><div class="wp-choice-row">`;
+          controlsHtml += opts.map(opt=>`<button class="choice-btn ${currentVal===opt?'selected':''}" data-idx="${i}" data-fieldkey="${f.key}" data-value="${opt}" data-action="set-field">${opt}</button>`).join('');
+          controlsHtml += `</div>`;
+          if(f.allowOther && currentVal === 'Otro'){
+            const otroVal = campos[f.key+'_otro'] || '';
+            controlsHtml += `<input type="text" class="field-otro-input" data-idx="${i}" data-fieldkey="${f.key}" value="${otroVal}" placeholder="Especifica el motivo…" style="margin-top:6px;">`;
+          }
+        } else if(f.type === 'select'){
+          controlsHtml += `<label style="margin-top:8px;">${f.label}</label>
+            <select class="field-select-input" data-idx="${i}" data-fieldkey="${f.key}">
+              <option value="">Seleccionar…</option>
+              ${f.options.map(opt=>`<option value="${opt}" ${currentVal===opt?'selected':''}>${opt}</option>`).join('')}
+            </select>`;
+        }
+      });
+
+      controlsHtml += `<label style="margin-top:8px;">Nota de esta etapa</label>
+        <textarea data-idx="${i}" class="note-textarea" placeholder="Escribe una nota...">${nota}</textarea>
+        <button class="btn btn-ghost btn-sm" data-idx="${i}" data-action="save-extra" style="margin-top:6px;">Guardar</button>`;
+      controlsHtml += `</div>`;
+    } else {
+      controlsHtml += `
+        <div class="lock-row">
+          <button class="btn-link" data-idx="${i}" data-action="toggle-lock">🔒 Actualizar (código de ${stageOwnerLabel(s)})</button>
+          <div class="lock-inline" data-idx="${i}" style="display:none;">
+            <input type="password" data-idx="${i}" class="code-input" placeholder="Código">
+            <button class="btn btn-primary btn-sm" data-idx="${i}" data-action="verify-code">Verificar</button>
+          </div>
+          <div class="code-error" data-idx="${i}"></div>
+        </div>
+      `;
+    }
+
+    wpHtml += `
+      <div class="waypoint">
+        <div class="wp-rail">
+          <div class="wp-dot ${done?'done':''} ${isCurrent?'current':''}">${done?'✓':(i+1)}</div>
+          ${i < STAGES.length-1 ? `<div class="wp-connector ${done?'filled':''}"></div>` : ''}
+        </div>
+        <div class="wp-body">
+          <div class="wp-label ${!done && !isCurrent ? 'future':''}">${s.label}</div>
+          ${stageOwnerLabel(s) ? `<div class="wp-owner">Responsable: ${stageOwnerLabel(s)}</div>` : ''}
+          ${fecha ? `<div class="wp-date">${formatFecha(fecha)}</div>` : ''}
+          ${duracion ? `<div class="wp-duration-inline">⏱ ${duracion} hasta la siguiente etapa</div>` : ''}
+          ${fieldBadges}
+          ${nota ? `<div class="wp-note-preview">"${nota}"</div>` : ''}
+          ${controlsHtml}
+        </div>
+      </div>
+    `;
+  });
+  wpHtml += '</div>';
+
+  const ventaCompletada = r.etapaActual === STAGES.length - 1;
+
+  viewAdmin.innerHTML = `
+    <div class="panel">
+      <h2>${r.cliente}</h2>
+      <p class="hint mono">${codigo} · ${r.producto} · Asesor: ${r.vendedor}</p>
+      <button class="btn btn-ghost btn-sm" id="btnLinkCliente">Generar link para el cliente</button>
+      <div id="linkClienteBox"></div>
+      ${wpHtml}
+      <div class="close-row" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <button class="btn btn-ghost btn-sm" id="btnVolverAdmin">← Volver a la lista</button>
+        ${ventaCompletada ? `<button class="btn btn-danger btn-sm" id="btnEliminarVenta">Eliminar venta</button>` : ''}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btnVolverAdmin').onclick = renderAdminHome;
+  if(ventaCompletada){
+    const btnEliminar = document.getElementById('btnEliminarVenta');
+    btnEliminar.onclick = async ()=>{
+      if(btnEliminar.textContent !== '¿Confirmar eliminación?'){
+        btnEliminar.textContent = '¿Confirmar eliminación?';
+        return;
+      }
+      btnEliminar.disabled = true;
+      btnEliminar.textContent = 'Eliminando…';
+      await deleteVenta(codigo);
+      await renderAdminHome();
+    };
+  }
+  document.getElementById('btnLinkCliente').onclick = ()=>{
+    const url = buildLink('codigo', codigo);
+    document.getElementById('linkClienteBox').innerHTML =
+      `<input type="text" readonly value="${url}" class="mono" style="margin-top:8px;" onclick="this.select()">
+       <p class="hint" style="margin:4px 0 0;">Toca el campo y copia (Ctrl+C / Cmd+C). Este link muestra solo esta venta, sin buscador ni otras pestañas.</p>`;
+  };
+
+  viewAdmin.querySelectorAll('[data-action="toggle-lock"]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const idx = btn.dataset.idx;
+      const box = viewAdmin.querySelector(`.lock-inline[data-idx="${idx}"]`);
+      box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+    };
+  });
+
+  viewAdmin.querySelectorAll('[data-action="verify-code"]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const idx = parseInt(btn.dataset.idx, 10);
+      const s = STAGES[idx];
+      const input = viewAdmin.querySelector(`.code-input[data-idx="${idx}"]`);
+      const errBox = viewAdmin.querySelector(`.code-error[data-idx="${idx}"]`);
+      const val = input.value.trim();
+      const person = findPersonByRoleAndCode(s.role, val);
+      if(person){
+        unlockedStages[idx] = true;
+        unlockedNames[idx] = person.nombre;
+
+        // Autocompleta el campo "select" de identidad (ej. técnico/tienda) con quien ingresó el código,
+        // sin necesidad de elegirlo de nuevo en la lista.
+        const selectField = (s.fields||[]).find(f => f.type === 'select' && f.options.includes(person.nombre));
+        if(selectField){
+          r.campos = r.campos || {};
+          r.campos[idx] = r.campos[idx] || {};
+          r.campos[idx][selectField.key] = person.nombre;
+          await saveVenta(codigo, r);
+          ventasCache[key] = r;
+        }
+
+        renderVentaEditorAdmin(codigo);
+      }else{
+        errBox.innerHTML = `<div class="error-box">Código incorrecto.</div>`;
+      }
+    };
+  });
+
+  viewAdmin.querySelectorAll('[data-action="set-stage"]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const idx = parseInt(btn.dataset.idx, 10);
+      r.etapaActual = idx;
+      r.fechas = r.fechas || {};
+      if(!r.fechas[idx]) r.fechas[idx] = new Date().toISOString();
+      await saveVenta(codigo, r);
+      ventasCache[key] = r;
+      renderVentaEditorAdmin(codigo);
+    };
+  });
+
+  viewAdmin.querySelectorAll('[data-action="set-field"]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const idx = parseInt(btn.dataset.idx, 10);
+      const fk = btn.dataset.fieldkey;
+      const val = btn.dataset.value;
+      r.campos = r.campos || {};
+      r.campos[idx] = r.campos[idx] || {};
+      const current = r.campos[idx][fk];
+      r.campos[idx][fk] = (current === val) ? null : val;
+      if(r.campos[idx][fk] !== 'Otro'){ delete r.campos[idx][fk+'_otro']; }
+      await saveVenta(codigo, r);
+      ventasCache[key] = r;
+      renderVentaEditorAdmin(codigo);
+    };
+  });
+
+  viewAdmin.querySelectorAll('[data-action="save-extra"]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const idx = parseInt(btn.dataset.idx, 10);
+      const ta = viewAdmin.querySelector(`.note-textarea[data-idx="${idx}"]`);
+      r.notasEtapa = r.notasEtapa || {};
+      r.notasEtapa[idx] = ta.value.trim();
+
+      r.campos = r.campos || {};
+      r.campos[idx] = r.campos[idx] || {};
+      viewAdmin.querySelectorAll(`.field-select-input[data-idx="${idx}"]`).forEach(sel=>{
+        r.campos[idx][sel.dataset.fieldkey] = sel.value || null;
+      });
+      viewAdmin.querySelectorAll(`.field-otro-input[data-idx="${idx}"]`).forEach(inp=>{
+        r.campos[idx][inp.dataset.fieldkey+'_otro'] = inp.value.trim();
+      });
+
+      btn.textContent = 'Guardando…';
+      await saveVenta(codigo, r);
+      ventasCache[key] = r;
+      renderVentaEditorAdmin(codigo);
+    };
+  });
+}
+
+// ---------- CONFIGURACIÓN (gestión de personal y códigos) ----------
+function renderConfigGate(){
+  if(configUnlocked){ renderConfigHome(); return; }
+  viewConfig.innerHTML = `
+    <div class="panel">
+      <h2>Acceso a Configuración</h2>
+      <p class="hint">Este acceso es distinto al de Administración. Ingresa el código de configuración.</p>
+      <input type="password" id="configPin" placeholder="Código de configuración">
+      <div id="configGateError" class="error-box" style="display:none;"></div>
+      <button class="btn btn-primary btn-full" id="btnConfigLogin">Ingresar</button>
+    </div>
+  `;
+  document.getElementById('btnConfigLogin').onclick = ()=>{
+    const val = document.getElementById('configPin').value.trim();
+    if(val === CONFIG_CODE){
+      configUnlocked = true;
+      renderConfigHome();
+    }else{
+      const err = document.getElementById('configGateError');
+      err.textContent = 'Código incorrecto.';
+      err.style.display = 'block';
+    }
+  };
+  document.getElementById('configPin').addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ document.getElementById('btnConfigLogin').click(); }
+  });
+}
+
+async function renderConfigHome(){
+  viewConfig.innerHTML = `<div class="panel"><p class="hint" style="margin:0;">Cargando…</p></div>`;
+  await loadSystemCodes();
+  await loadPersonal();
+
+  const allPeople = [];
+  ROLES.forEach(rol=>{
+    personalByRole(rol).forEach(p=> allPeople.push(p));
+  });
+
+  let tableHtml = '';
+  if(allPeople.length === 0){
+    tableHtml = `<div class="empty-state">Aún no hay personal registrado.</div>`;
+  }else{
+    tableHtml = `
+      <table class="codes-table">
+        <thead>
+          <tr><th>Rol</th><th>Nombre</th><th>Código</th><th></th></tr>
+        </thead>
+        <tbody id="codesTableBody">
+          ${allPeople.map(p=>`
+            <tr data-row-id="${p.id}">
+              <td class="role-chip">${p.rol}</td>
+              <td class="person-name">${p.nombre}</td>
+              <td><span class="code-chip">${p.codigo}</span></td>
+              <td>
+                <div class="person-actions">
+                  <button class="btn btn-ghost btn-sm" data-id="${p.id}" data-action="edit-person">Editar</button>
+                  <button class="btn btn-danger btn-sm" data-id="${p.id}" data-action="delete-person">Eliminar</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  viewConfig.innerHTML = `
+    <div class="panel">
+      <h2>Códigos generales del sistema</h2>
+      <p class="hint">Acceso de Personal Canex (Administración) y acceso de esta pantalla de Configuración.</p>
+      <label>Código de Personal Canex</label>
+      <input type="text" id="sysCollab" class="mono" value="${COLLAB_CODE}">
+      <label>Código de Configuración</label>
+      <input type="text" id="sysConfig" class="mono" value="${CONFIG_CODE}">
+      <div id="sysStatus" style="display:none;"></div>
+      <button class="btn btn-primary btn-full" id="btnSysGuardar">Guardar códigos generales</button>
+    </div>
+
+    <div class="panel">
+      <h2>Agregar vendedor o integrante</h2>
+      <p class="hint">Crea un nuevo Vendedor, Coordinadora, Entregador, Bodeguero, o cualquier otro rol con su propio código.</p>
+      <label>Nombre completo</label>
+      <input type="text" id="cfgNombre" placeholder="Ej. María Pérez">
+      <label>Rol</label>
+      <select id="cfgRol">
+        ${ROLES.map(r=>`<option value="${r}">${r}</option>`).join('')}
+      </select>
+      <label>Código de acceso</label>
+      <input type="text" id="cfgCodigo" class="mono" placeholder="Ej. 458210">
+      <div id="cfgStatus" style="display:none;"></div>
+      <button class="btn btn-primary btn-full" id="btnCfgGuardar">Agregar persona</button>
+    </div>
+
+    <div class="panel">
+      <h2>Todos los códigos (${allPeople.length})</h2>
+      <p class="hint">Incluye Gerencia, Comité y Técnico. Toca "Editar" para cambiar nombre, rol o código.</p>
+      ${tableHtml}
+    </div>
+  `;
+
+  // ---- códigos generales ----
+  const sysStatus = document.getElementById('sysStatus');
+  document.getElementById('btnSysGuardar').onclick = async ()=>{
+    const collab = document.getElementById('sysCollab').value.trim();
+    const config = document.getElementById('sysConfig').value.trim();
+    if(!collab || !config){
+      sysStatus.textContent = 'Ambos códigos son obligatorios.';
+      sysStatus.className = 'status-err'; sysStatus.style.display='block';
+      return;
+    }
+    const ok = await saveSystemCodes(collab, config);
+    sysStatus.textContent = ok ? 'Códigos generales actualizados.' : 'No se pudo guardar.';
+    sysStatus.className = ok ? 'status-ok' : 'status-err';
+    sysStatus.style.display = 'block';
+  };
+
+  // ---- agregar persona ----
+  const cfgStatus = document.getElementById('cfgStatus');
+  const showCfgStatus = (msg, isError)=>{
+    cfgStatus.textContent = msg;
+    cfgStatus.className = isError ? 'status-err' : 'status-ok';
+    cfgStatus.style.display = 'block';
+  };
+  document.getElementById('btnCfgGuardar').onclick = async ()=>{
+    const nombre = document.getElementById('cfgNombre').value.trim();
+    const rol = document.getElementById('cfgRol').value;
+    const codigo = document.getElementById('cfgCodigo').value.trim();
+    if(!nombre){ showCfgStatus('Falta el nombre.', true); return; }
+    if(!codigo){ showCfgStatus('Falta el código.', true); return; }
+    const dup = Object.values(personalCache).find(p=>p.rol===rol && p.codigo===codigo);
+    if(dup){ showCfgStatus('Ese código ya está en uso para ese rol.', true); return; }
+
+    const id = 'personal:' + rol.toLowerCase().replace(/\s+/g,'-') + '-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+    showCfgStatus('Guardando…', false);
+    const ok = await savePersonal(id, { nombre, rol, codigo, creado:new Date().toISOString() });
+    if(!ok){ showCfgStatus('No se pudo guardar. Intenta de nuevo.', true); return; }
+    await renderConfigHome();
+  };
+
+  // ---- eliminar persona ----
+  viewConfig.querySelectorAll('[data-action="delete-person"]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      if(btn.textContent !== '¿Confirmar?'){
+        btn.textContent = '¿Confirmar?';
+        return;
+      }
+      await deletePersonal(btn.dataset.id);
+      await renderConfigHome();
+    };
+  });
+
+  // ---- editar persona ----
+  viewConfig.querySelectorAll('[data-action="edit-person"]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.id;
+      const p = personalCache[id];
+      if(!p) return;
+      const row = viewConfig.querySelector(`tr[data-row-id="${id}"]`);
+      row.innerHTML = `
+        <td colspan="4">
+          <div style="padding:10px 0;">
+            <label style="margin-top:0;">Nombre</label>
+            <input type="text" class="edit-nombre" value="${p.nombre}">
+            <label>Rol</label>
+            <select class="edit-rol">
+              ${ROLES.map(r=>`<option value="${r}" ${r===p.rol?'selected':''}>${r}</option>`).join('')}
+            </select>
+            <label>Código</label>
+            <input type="text" class="edit-codigo mono" value="${p.codigo}">
+            <div class="edit-status" style="display:none;"></div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn btn-primary btn-sm" data-action="save-edit" data-id="${id}">Guardar cambios</button>
+              <button class="btn btn-ghost btn-sm" data-action="cancel-edit">Cancelar</button>
+            </div>
+          </div>
+        </td>
+      `;
+      row.querySelector('[data-action="cancel-edit"]').onclick = renderConfigHome;
+      row.querySelector('[data-action="save-edit"]').onclick = async ()=>{
+        const nombre = row.querySelector('.edit-nombre').value.trim();
+        const rol = row.querySelector('.edit-rol').value;
+        const codigo = row.querySelector('.edit-codigo').value.trim();
+        const statusEl = row.querySelector('.edit-status');
+        if(!nombre || !codigo){
+          statusEl.textContent = 'Nombre y código son obligatorios.';
+          statusEl.className = 'status-err'; statusEl.style.display = 'block';
+          return;
+        }
+        const ok = await savePersonal(id, { nombre, rol, codigo, creado:p.creado||new Date().toISOString() });
+        if(!ok){
+          statusEl.textContent = 'No se pudo guardar.';
+          statusEl.className = 'status-err'; statusEl.style.display = 'block';
+          return;
+        }
+        await renderConfigHome();
+      };
+    };
+  });
+}
+
+// ---------- VENDEDOR (identidad ya establecida en el login) ----------
+function renderVendedorList(){
+  const container = document.getElementById('vendedorContent');
+  const mine = Object.entries(ventasCache).filter(([k,r]) => r.vendedor === currentVendedor)
+    .sort((a,b)=> (b[1].creado||'').localeCompare(a[1].creado||''));
+
+  let html = `
+    <div class="panel">
+      <h2>Ventas de ${currentVendedor}</h2>
+      <button class="btn btn-ghost" id="btnNuevaVentaVend">+ Registrar nueva venta</button>
+      <button class="btn-link" id="btnVendedorCambiar" style="display:block; margin-top:12px;">← Cambiar de perfil</button>
+    </div>
+  `;
+
+  if(mine.length === 0){
+    html += `<div class="panel"><div class="empty-state">No tienes ventas registradas todavía.</div></div>`;
+  }else{
+    html += `<div class="panel" style="padding:10px 16px;">`;
+    mine.forEach(([key, r])=>{
+      const codigo = key.replace('venta:','');
+      html += `
+        <div class="sale-card" data-codigo="${codigo}">
+          <div class="sale-top">
+            <div>
+              <div class="sale-client">${r.cliente}</div>
+              <div class="sale-product">${r.producto} · <span class="mono sale-code">${codigo}</span></div>
+            </div>
+            ${stageBadge(r.etapaActual)}
+          </div>
+          ${miniTrack(r.etapaActual)}
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
+  document.getElementById('btnNuevaVentaVend').onclick = openNuevaVentaFormVendedor;
+  document.getElementById('btnVendedorCambiar').onclick = showLanding;
+  container.querySelectorAll('.sale-card').forEach(card=>{
+    card.onclick = ()=> renderVendedorDetail(card.dataset.codigo);
+  });
+}
+
+function openNuevaVentaFormVendedor(){
+  const container = document.getElementById('vendedorContent');
+  const productOptions = PRODUCTOS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  container.insertAdjacentHTML('afterbegin', `
+    <div class="panel" id="nuevaVentaPanelVend">
+      <h2>Nueva venta · ${currentVendedor}</h2>
+      <label>Nombre del cliente</label>
+      <input type="text" id="nvvCliente" placeholder="Ej. Agrícola San José S.A.">
+      <label>Producto</label>
+      <select id="nvvProducto">${productOptions}</select>
+      <label>Tu código de asesor</label>
+      <input type="password" id="nvvCode" placeholder="Código">
+      <div id="nvvStatus" style="display:none;"></div>
+      <button class="btn btn-primary btn-full" id="btnGuardarNuevaVend">Crear venta</button>
+      <div class="close-row"><button class="btn btn-ghost btn-sm" id="btnCancelarNuevaVend">Cancelar</button></div>
+    </div>
+  `);
+  document.getElementById('btnCancelarNuevaVend').onclick = ()=> document.getElementById('nuevaVentaPanelVend').remove();
+
+  const statusEl = document.getElementById('nvvStatus');
+  const showStatus = (msg, isError)=>{
+    statusEl.textContent = msg;
+    statusEl.className = isError ? 'status-err' : 'status-ok';
+    statusEl.style.display = 'block';
+  };
+
+  document.getElementById('btnGuardarNuevaVend').onclick = async ()=>{
+    const btn = document.getElementById('btnGuardarNuevaVend');
+    const cliente = document.getElementById('nvvCliente').value.trim();
+    const producto = document.getElementById('nvvProducto').value;
+    const code = document.getElementById('nvvCode').value.trim();
+
+    if(!cliente){ showStatus('Falta el nombre del cliente.', true); return; }
+    if(code !== currentVendedorCode){ showStatus('Código incorrecto.', true); return; }
+    if(typeof window.storage === 'undefined'){ showStatus('El almacenamiento no está disponible en esta vista.', true); return; }
+
+    btn.disabled = true;
+    showStatus('Guardando…', false);
+    try{
+      const listRes = await window.storage.list('venta:', true);
+      const existingKeys = (listRes && listRes.keys) ? listRes.keys : [];
+      const codigo = generateCodigo(existingKeys);
+      const record = {
+        cliente, producto, vendedor: currentVendedor,
+        etapaActual: 0,
+        fechas: { 0: new Date().toISOString() },
+        notasEtapa: {},
+        campos: {},
+        creado: new Date().toISOString()
+      };
+      const ok = await saveVenta(codigo, record);
+      if(!ok){ showStatus('No se pudo guardar. Intenta de nuevo.', true); btn.disabled=false; return; }
+      showStatus('Venta creada: '+codigo, false);
+      await loadAllVentas();
+      renderVendedorList();
+    }catch(err){
+      showStatus('Error al guardar: '+(err && err.message ? err.message : String(err)), true);
+      btn.disabled = false;
+    }
+  };
+}
+
+function renderVendedorDetail(codigo){
+  const key = 'venta:'+codigo;
+  const r = ventasCache[key];
+  if(!r) return;
+  const container = document.getElementById('vendedorContent');
+  container.innerHTML = `
+    <div class="panel">
+      <h2>${r.cliente}</h2>
+      <p class="hint mono">${codigo} · ${r.producto}</p>
+      ${buildFlightpathReadOnly(r)}
+      <div class="close-row"><button class="btn btn-ghost btn-sm" id="btnVolverVend">← Volver a mis ventas</button></div>
+    </div>
+  `;
+  document.getElementById('btnVolverVend').onclick = renderVendedorList;
+}
+
+// ---------- CLIENTE (solo lectura) ----------
+async function fetchVenta(raw){
+  const key = 'venta:'+raw;
+  try{
+    const res = await window.storage.get(key, true);
+    if(!res || !res.value) return null;
+    return JSON.parse(res.value);
+  }catch(e){
+    return null;
+  }
+}
+// Mensajes cercanos y en lenguaje humano para el cliente, por etapa.
+const CLIENT_STAGE_COPY = [
+  { emoji:'📝', text:'Estamos afinando los últimos detalles de tu compra.' },
+  { emoji:'✅', text:'Tu pedido está en revisión final de gerencia.' },
+  { emoji:'💳', text:'Estamos confirmando la forma de pago de tu compra.' },
+  { emoji:'📦', text:'Estamos verificando la disponibilidad de tu Agras.' },
+  { emoji:'🧾', text:'Estamos generando la factura de tu equipo.' },
+  { emoji:'🔧', text:'Tu dron está siendo calibrado y preparado por nuestro equipo técnico.' },
+  { emoji:'💰', text:'Estamos confirmando la recepción de tu pago.' },
+  { emoji:'🚚', text:'¡Tu Agras está lista y a punto de salir de bodega!' },
+  { emoji:'🛫', text:'¡Tu dron ya va en camino hacia ti!' },
+  { emoji:'🎉', text:'¡Tu Agras ya está en tus manos! Bienvenido a la familia Canex.' },
+  { emoji:'🎉', text:'¡Todo listo! Tu compra quedó completamente cerrada.' }
+];
+function renderClienteResult(raw, r){
+  const idx = r.etapaActual;
+  const total = STAGES.length - 1;
+  const pct = Math.round((idx / total) * 100);
+  const delivered = idx === STAGES.length - 1;
+  const copy = CLIENT_STAGE_COPY[idx] || { emoji:'🚁', text:STAGES[idx].label };
+
+  document.getElementById('clienteResultado').innerHTML = `
+    <div class="client-hero ${delivered ? 'hero-delivered' : ''}">
+      <div class="drone-emoji">🚁</div>
+      <div class="hero-client">${r.cliente}</div>
+      <div class="hero-product">${r.producto}</div>
+      <div class="hero-stage">${copy.emoji} ${copy.text}</div>
+      <div class="progress-outer"><div class="progress-inner" style="width:${pct}%;"></div></div>
+      <div class="progress-pct">${pct}% del proceso completado</div>
+    </div>
+    <div class="panel" style="margin-top:14px;">
+      <div class="info-grid" style="margin-top:0;">
+        <div><div class="k">Código</div><div class="v mono">${raw}</div></div>
+        <div><div class="k">Producto</div><div class="v">${r.producto}</div></div>
+        <div><div class="k">Asesor</div><div class="v">${r.vendedor}</div></div>
+        <div><div class="k">Etapa actual</div><div class="v">${STAGES[idx].label}</div></div>
+      </div>
+      ${buildFlightpathReadOnly(r, false, true)}
+    </div>
+  `;
+}
+async function loadClienteByCode(raw){
+  const r = await fetchVenta(raw);
+  if(!r){
+    document.getElementById('clienteResultado').innerHTML =
+      `<div class="panel"><div class="error-box" style="margin-top:0;">No encontramos ese código. Verifica con tu asesor comercial.</div></div>`;
+    return;
+  }
+  renderClienteResult(raw, r);
+}
+
+// ---------- Links directos ----------
+function buildLink(param, value){
+  return `${window.location.origin}${window.location.pathname}?${param}=${encodeURIComponent(value)}`;
+}
+
+// ---------- arranque ----------
+(async function init(){
+  await seedPersonalIfEmpty();
+  await seedTecnicosIfMissing();
+  await seedEntregadoresIfMissing();
+  await loadSystemCodes();
+  await loadPersonal();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const lockedCodigo = urlParams.get('codigo');
+  const lockedVendedor = urlParams.get('vendedor');
+
+  if(lockedCodigo){
+    hideAllViews();
+    modeToggle.style.display = 'none';
+    viewCliente.style.display = 'block';
+    document.getElementById('btnClienteVolver').style.display = 'none';
+    loadClienteByCode(lockedCodigo.toUpperCase());
+  }else if(lockedVendedor){
+    hideAllViews();
+    modeToggle.style.display = 'none';
+    viewVendedor.style.display = 'block';
+    currentVendedor = decodeURIComponent(lockedVendedor);
+    const person = personalByRole('Vendedor').find(p=>p.nombre === currentVendedor);
+    currentVendedorCode = person ? person.codigo : null;
+    await loadAllVentas();
+    renderVendedorList();
+  }else{
+    showLanding();
+  }
+})();
+</script>
+</body>
+</html>
